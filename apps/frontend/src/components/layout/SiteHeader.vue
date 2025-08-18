@@ -18,6 +18,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated);
 
         <nav class="d-flex align-center justify-center flex-grow-1">
           <v-btn to="/" variant="text" class="nav-link mx-4">{{ $t('nav.home') }}</v-btn>
+          <v-btn to="/products" variant="text" class="nav-link mx-4">Products</v-btn>
           <v-btn to="/contact" variant="text" class="nav-link mx-4">{{ $t('nav.contact') }}</v-btn>
           <v-btn to="/about" variant="text" class="nav-link mx-4">{{ $t('nav.about') }}</v-btn>
         </nav>
@@ -37,7 +38,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated);
         <!-- User Authentication Section -->
         <div v-if="!isAuthenticated" class="d-flex align-center">
           <v-btn to="/login" variant="text" class="nav-link me-2">Login</v-btn>
-          <v-btn to="/signup" color="primary" variant="flat" class="btn-cap">Sign Up</v-btn>
+          <v-btn to="/signup" color="primary" variant="flat" class="btn-cap nav-link">Sign Up</v-btn>
         </div>
 
         <!-- User Profile Section -->
@@ -52,10 +53,12 @@ const isAuthenticated = computed(() => authStore.isAuthenticated);
 .nav-link {
   color: rgb(var(--v-theme-secondary)) !important;
   text-transform: none;
+  border-radius: 6px !important;
 }
 .nav-link:hover,
 .nav-link:focus-visible {
   color: rgb(var(--v-theme-primary)) !important;
+  background-color: rgb(var(--v-theme-secondary)) !important;
 }
 .search-field {
   max-width: 243px;
@@ -135,7 +138,9 @@ const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 .btn-cap {
   text-transform: none;
+  border-radius: 6px !important;
 }
+
 </style>
 
 

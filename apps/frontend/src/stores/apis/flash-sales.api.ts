@@ -37,7 +37,7 @@ export interface FlashSale {
   };
 }
 
-const BASE_URL = '/api/flash-sales';
+const BASE_URL = '/flash-sales';
 
 export const flashSalesApi = {
   // Get active flash sales

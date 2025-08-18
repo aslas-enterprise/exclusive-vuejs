@@ -5,19 +5,19 @@ import apiClient from './axios-instance';
 export const UserApis = {
   // Get user profile
   getProfile: async (): Promise<IAuth.User> => {
-    const response = await apiClient.get('/api/users/profile');
+    const response = await apiClient.get('/users/profile');
     return response.data;
   },
 
   // Update user profile
   updateProfile: async (userData: Partial<IAuth.User>): Promise<IAuth.User> => {
-    const response = await apiClient.put('/api/users/profile', userData);
+    const response = await apiClient.put('/users/profile', userData);
     return response.data;
   },
 
   // Change password
   changePassword: async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
-    const response = await apiClient.post('/api/users/change-password', {
+    const response = await apiClient.post('/users/change-password', {
       currentPassword,
       newPassword,
     });
@@ -29,7 +29,7 @@ export const UserApis = {
     const formData = new FormData();
     formData.append('avatar', file);
     
-    const response = await apiClient.post('/api/users/avatar', formData, {
+    const response = await apiClient.post('/users/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

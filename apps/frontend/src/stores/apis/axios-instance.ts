@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 
 // Configure axios with interceptors
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_APP_BACKEND_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_APP_BACKEND_URL || 'http://localhost:3000/api',
   headers: {
     'Content-Type': 'application/json',
   },

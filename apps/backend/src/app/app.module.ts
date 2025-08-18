@@ -9,9 +9,10 @@ import { EmailModule } from './email/email.module';
 import { CategoryModule } from './category/category.module';
 import { ItemsModule } from './items/items.module';
 import { FlashSalesModule } from './flash-sales/flash-sales.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
-  imports: [LoggerModule, PrismaModule, RedisModule, EmailModule, AuthModule, CategoryModule, ItemsModule, FlashSalesModule],
+  imports: [LoggerModule, PrismaModule, RedisModule, EmailModule, AuthModule, CategoryModule, ItemsModule, FlashSalesModule, FavoritesModule],
   controllers: [AppController],
   providers: [AppService],
 })

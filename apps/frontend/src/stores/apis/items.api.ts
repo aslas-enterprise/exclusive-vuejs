@@ -1,7 +1,7 @@
 import  axiosInstance  from './axios-instance';
 import type { Item, ItemQueryParams } from '../modules/items';
 
-const BASE_URL = '/api/items';
+const BASE_URL = '/items';
 
 export const itemsApi = {
   // Get all items with pagination and filters

@@ -4,7 +4,7 @@
     <div class="d-flex align-center w-100 promo-inner">
       <div class="text-center flex-grow-1">
         <span class="o-80">{{ $t('promo.message') }}</span>
-        <RouterLink to="/" class="text-white text-decoration-underline ms-2">{{ $t('promo.shopNow') }}</RouterLink>
+        <RouterLink to="/products" class="text-white text-decoration-underline ms-2">{{ $t('promo.shopNow') }}</RouterLink>
       </div>
       <div>
         <v-select

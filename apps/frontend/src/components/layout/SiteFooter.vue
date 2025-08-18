@@ -23,7 +23,7 @@
             <RouterLink to="/login">{{ $t('footer.loginRegister') }}</RouterLink>
             <RouterLink to="/cart">{{ $t('footer.cart') }}</RouterLink>
             <RouterLink to="/wishlist">{{ $t('footer.wishlist') }}</RouterLink>
-            <RouterLink to="/shop">{{ $t('footer.shop') }}</RouterLink>
+            <RouterLink to="/products">{{ $t('footer.shop') }}</RouterLink>
           </div>
         </v-col>
         <v-col cols="12" sm="6" lg="3" class="mt-8 mt-lg-0">

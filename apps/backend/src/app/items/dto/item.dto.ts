@@ -1,4 +1,5 @@
 import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, IsUrl, Max, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 // ===== ITEM DTOs =====
 
@@ -422,13 +423,28 @@ export class ItemQueryDto {
 
   @IsOptional()
   @IsString()
+  category?: string; // Category slug
+
+  @IsOptional()
+  @Transform(() => undefined) // Ignore this field completely
+  @IsString()
+  priceRange?: string; // Frontend price range (will be ignored in processing)
+
+  @IsOptional()
+  @IsString()
   subcategoryId?: string;
 
   @IsOptional()
+  @IsString()
+  subcategory?: string; // Subcategory slug
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isFeatured?: boolean;
 
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isActive?: boolean;
 
@@ -441,27 +457,32 @@ export class ItemQueryDto {
   sortOrder?: 'asc' | 'desc';
 
   @IsOptional()
+  @Transform(({ value }) => parseInt(value))
   @IsInt()
   @Min(1)
   page?: number;
 
   @IsOptional()
+  @Transform(({ value }) => parseInt(value))
   @IsInt()
   @Min(1)
   @Max(100)
   limit?: number;
 
   @IsOptional()
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber()
   @Min(0)
   minPrice?: number;
 
   @IsOptional()
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber()
   @Min(0)
   maxPrice?: number;
 
   @IsOptional()
+  @Transform(({ value }) => parseInt(value))
   @IsInt()
   @Min(1)
   @Max(5)

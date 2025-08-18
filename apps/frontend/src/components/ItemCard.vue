@@ -5,7 +5,7 @@
       <div v-if="hasMultipleImages" class="image-slideshow">
         <img 
           :src="currentImage.url" 
-          :alt="currentImage.altText || item.item?.name" 
+          :alt="currentImage.altText || item.name || item.item?.name" 
           class="slideshow-image"
         />
         
@@ -28,14 +28,14 @@
       <img 
         v-else
         :src="getPrimaryImage(item)" 
-        :alt="item.item?.name" 
+        :alt="item.name || item.item?.name" 
         class="single-image"
       />
       
       <div v-if="showSaleTag && isOnSale" class="sale-badge">Sale</div>
     </div>
     <div class="item-info">
-      <h3 class="item-name">{{ item.item?.name }}</h3>
+      <h3 class="item-name">{{ item.name || item.item?.name }}</h3>
       <div class="item-rating">
         <div class="stars">
           <v-icon 
@@ -43,19 +43,34 @@
             :key="star" 
             icon="mdi-star" 
             size="16" 
-            :color="star <= getAverageRating(item) ? '#FFD700' : '#E0E0E0'"
+            :color="star <= getAverageRating(item.item) ? '#FFD700' : '#E0E0E0'"
           />
         </div>
-        <span class="rating-count">({{ getReviewCount(item) }} reviews)</span>
+        <span class="rating-count">({{ getReviewCount(item.item) }} reviews)</span>
       </div>
+ 
       <div class="item-price">
-        <span v-if="isOnSale" class="current-price">${{ item.salePrice }}</span>
-        <span v-else class="current-price">${{ item.originalPrice }}</span>
-        <span v-if="isOnSale" class="original-price">${{ item.originalPrice }}</span>
+        <span v-if="isOnSale" class="current-price">${{ item.item.salePrice || getCurrentPrice(item) }}</span>
+        <span v-else class="current-price">${{ item.item.currentPrice || getCurrentPrice(item) }}</span>
+        <span v-if="isOnSale" class="original-price">${{ item.item.currentPrice || getOriginalPrice(item) }}</span>
       </div>
       <div class="item-actions">
-        <v-btn icon="mdi-heart" variant="text" size="small" class="action-btn" />
-        <v-btn icon="mdi-eye" variant="text" size="small" class="action-btn" />
+        <v-btn 
+          :icon="isFavorited ? 'mdi-heart' : 'mdi-heart-outline'" 
+          variant="text" 
+          size="small" 
+          class="action-btn favorite-btn"
+          :class="{ 'favorited': isFavorited }"
+          @click="handleFavoriteClick"
+          :loading="favoriteLoading"
+        />
+        <v-btn 
+          icon="mdi-eye" 
+          variant="text" 
+          size="small" 
+          class="action-btn"
+          @click="openItemModal"
+        />
         <v-btn 
           color="primary" 
           variant="flat" 
@@ -67,10 +82,20 @@
       </div>
     </div>
   </div>
+
+  <!-- Item Modal -->
+  <ItemModal
+    v-model="showItemModal"
+    :item="item"
+    @add-to-cart="handleAddToCart"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useFavoritesStore } from '../stores/modules/favorites/favorites.store';
+import ItemModal from './ItemModal.vue';
 
 interface ItemCardProps {
   item: any;
@@ -81,17 +106,30 @@ const props = withDefaults(defineProps<ItemCardProps>(), {
   showSaleTag: true
 });
 
+const router = useRouter();
+const favoritesStore = useFavoritesStore();
+
 // Slideshow state
 const currentImageIndex = ref(0);
+const favoriteLoading = ref(false);
+const localFavoriteStatus = ref(false);
+const showItemModal = ref(false);
 let autoSlideInterval: ReturnType<typeof setInterval> | null = null;
 
 // Computed properties
 const isOnSale = computed(() => {
-  return props.item.salePrice && props.item.salePrice < props.item.originalPrice;
+  // Check if the API provides computed isOnSale
+  if (props.item.isOnSale !== undefined) {
+    return props.item.isOnSale;
+  }
+  // Fallback to price comparison
+  const currentPrice = getCurrentPrice(props.item);
+  const originalPrice = getOriginalPrice(props.item);
+  return currentPrice < originalPrice && currentPrice > 0;
 });
 
 const itemImages = computed(() => {
-  return props.item.item?.images || [];
+  return props.item.images || props.item.item?.images || [];
 });
 
 const hasMultipleImages = computed(() => {
@@ -102,11 +140,62 @@ const currentImage = computed(() => {
   if (itemImages.value.length > 0) {
     return itemImages.value[currentImageIndex.value];
   }
-  return { url: 'https://picsum.photos/400/300?random=16', altText: props.item.item?.name };
+  return { url: 'https://picsum.photos/400/300?random=16', altText: props.item.name || props.item.item?.name };
 });
 
+// Favorite functionality
+const isFavorited = computed(() => {
+  // First check local state, then fallback to store
+  return localFavoriteStatus.value || favoritesStore.isItemFavorited(props.item.id || props.item.item?.id);
+});
 
+// Check favorite status for this item
+const checkFavoriteStatus = async () => {
+  if (!favoritesStore.isLoggedIn) {
+    localFavoriteStatus.value = false;
+    return;
+  }
 
+  try {
+    const itemId = props.item.id || props.item.item?.id;
+    const status = await favoritesStore.checkFavoriteStatus(itemId);
+    localFavoriteStatus.value = status;
+  } catch (error) {
+    console.error('Error checking favorite status:', error);
+    localFavoriteStatus.value = false;
+  }
+};
+
+// Favorite click handler
+const handleFavoriteClick = async () => {
+  if (!favoritesStore.isLoggedIn) {
+    // Redirect to login page
+    router.push('/login');
+    return;
+  }
+
+  try {
+    favoriteLoading.value = true;
+    const itemId = props.item.id || props.item.item?.id;
+    await favoritesStore.toggleFavorite(itemId);
+    // Update local state after toggle
+    localFavoriteStatus.value = !localFavoriteStatus.value;
+  } catch (error) {
+    console.error('Error toggling favorite:', error);
+  } finally {
+    favoriteLoading.value = false;
+  }
+};
+
+const openItemModal = () => {
+  showItemModal.value = true;
+};
+
+const handleAddToCart = (item: any, quantity: number) => {
+  // TODO: Implement add to cart functionality
+  console.log('Adding to cart:', item, quantity);
+  showItemModal.value = false;
+};
 
 // Slideshow functions
 const nextImage = () => {
@@ -146,8 +235,10 @@ const stopAutoSlide = () => {
 };
 
 // Lifecycle hooks
-onMounted(() => {
+onMounted(async () => {
   startAutoSlide();
+  // Check favorite status when component mounts
+  await checkFavoriteStatus();
 });
 
 onUnmounted(() => {
@@ -156,6 +247,12 @@ onUnmounted(() => {
 
 // Helper function to get primary image
 const getPrimaryImage = (item: any) => {
+  // Check if images are at root level first
+  if (item.images && item.images.length > 0) {
+    const primaryImage = item.images.find((img: any) => img.isPrimary);
+    return primaryImage ? primaryImage.url : item.images[0].url;
+  }
+  // Fallback to nested structure
   if (item.item?.images && item.item.images.length > 0) {
     const primaryImage = item.item.images.find((img: any) => img.isPrimary);
     return primaryImage ? primaryImage.url : item.item.images[0].url;
@@ -165,6 +262,16 @@ const getPrimaryImage = (item: any) => {
 
 // Helper function to get average rating
 const getAverageRating = (item: any) => {
+  // Check if the API provides computed averageRating
+  if (item.averageRating !== undefined) {
+    return item.averageRating;
+  }
+  // Check if reviews are at root level first
+  if (item.reviews && item.reviews.length > 0) {
+    const totalRating = item.reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
+    return Math.round(totalRating / item.reviews.length);
+  }
+  // Fallback to nested structure
   if (item.item?.reviews && item.item.reviews.length > 0) {
     const totalRating = item.item.reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
     return Math.round(totalRating / item.item.reviews.length);
@@ -174,7 +281,44 @@ const getAverageRating = (item: any) => {
 
 // Helper function to get review count
 const getReviewCount = (item: any) => {
+  // Check if the API provides computed totalReviews
+  if (item.totalReviews !== undefined) {
+    return item.totalReviews;
+  }
+  // Check if reviews are at root level first
+  if (item.reviews) {
+    return item.reviews.length;
+  }
+  // Fallback to nested structure
   return item.item?.reviews?.length || 0;
+};
+
+// Helper function to get current price
+const getCurrentPrice = (item: any) => {
+  // Check if the API provides computed currentPrice
+  if (item.currentPrice) {
+    return item.currentPrice;
+  }
+  // Fallback to prices array
+  if (item.prices && item.prices.length > 0) {
+    const activePrice = item.prices.find((price: any) => price.isActive);
+    return activePrice ? activePrice.price : item.prices[0].price;
+  }
+  return 0;
+};
+
+// Helper function to get original price
+const getOriginalPrice = (item: any) => {
+  // Check if the API provides computed salePrice
+  if (item.salePrice) {
+    return item.salePrice;
+  }
+  // Fallback to prices array
+  if (item.prices && item.prices.length > 0) {
+    const activePrice = item.prices.find((price: any) => price.isActive);
+    return activePrice ? activePrice.price : item.prices[0].price;
+  }
+  return 0;
 };
 </script>
 
@@ -338,6 +482,18 @@ const getReviewCount = (item: any) => {
 
 .action-btn:hover {
   color: #000;
+}
+
+.favorite-btn {
+  transition: all 0.2s ease;
+}
+
+.favorite-btn.favorited {
+  color: #DB4444 !important;
+}
+
+.favorite-btn.favorited:hover {
+  color: #B91C1C !important;
 }
 
 .add-to-cart-btn {

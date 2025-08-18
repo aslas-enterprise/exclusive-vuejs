@@ -1,7 +1,7 @@
 import  axiosInstance  from './axios-instance';
 import type { Category, Subcategory, CategoryQueryParams } from '../modules/categories';
 
-const BASE_URL = '/api/categories';
+const BASE_URL = '/categories';
 
 export const categoriesApi = {
   // Get all categories

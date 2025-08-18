@@ -37,7 +37,7 @@
           <ItemCard 
             v-for="product in bestSellingProducts" 
             :key="product.id" 
-            :item="product"
+            :item="{item: product}"
             :show-sale-tag="true"
           />
         </div>
@@ -63,6 +63,7 @@
           variant="flat" 
           size="large"
           class="view-all-btn"
+          to="/products"
         >
           View All Products
         </v-btn>

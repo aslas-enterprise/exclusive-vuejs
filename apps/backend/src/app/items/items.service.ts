@@ -74,7 +74,9 @@ export class ItemsService {
     const {
       search,
       categoryId,
+      category,
       subcategoryId,
+      subcategory,
       isFeatured,
       isActive,
       sortBy = 'createdAt',
@@ -99,8 +101,24 @@ export class ItemsService {
       ];
     }
 
-    if (categoryId) where.categoryId = categoryId;
-    if (subcategoryId) where.subcategoryId = subcategoryId;
+    // Category filtering
+    if (categoryId) {
+      where.categoryId = categoryId;
+    } else if (category) {
+      where.category = {
+        slug: category,
+      };
+    }
+    
+    // Subcategory filtering
+    if (subcategoryId) {
+      where.subcategoryId = subcategoryId;
+    } else if (subcategory) {
+      where.subcategory = {
+        slug: subcategory,
+      };
+    }
+    
     if (isFeatured !== undefined) where.isFeatured = isFeatured;
     if (isActive !== undefined) where.isActive = isActive;
 
@@ -123,6 +141,19 @@ export class ItemsService {
         },
       };
     }
+
+    // Build orderBy clause to support price/rating sorting via relation aggregates
+    const orderByClause: any = (() => {
+      if (sortBy === 'price') {
+        // Sort by the minimum active price per item (closest representation of current price)
+        return { prices: { _min: { price: sortOrder } } };
+      }
+      if (sortBy === 'rating') {
+        // Sort by average rating
+        return { ratings: { _avg: { rating: sortOrder } } };
+      }
+      return { [sortBy]: sortOrder };
+    })();
 
     // Get items with relations
     const [items, total] = await Promise.all([
@@ -148,7 +179,7 @@ export class ItemsService {
             where: { userId },
           } : false,
         },
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: orderByClause,
         skip,
         take: limit,
       }),

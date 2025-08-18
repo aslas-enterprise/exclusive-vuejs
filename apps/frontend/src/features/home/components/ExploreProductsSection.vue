@@ -43,6 +43,7 @@
           variant="flat" 
           size="large"
           class="view-all-btn"
+          to="/products"
         >
           View All Products
         </v-btn>

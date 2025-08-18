@@ -27,7 +27,7 @@
         <ItemCard 
           v-for="item in newArrivalItems" 
           :key="item.id" 
-          :item="item"
+          :item="{item: item}"
           :show-sale-tag="true"
         />
       </div>

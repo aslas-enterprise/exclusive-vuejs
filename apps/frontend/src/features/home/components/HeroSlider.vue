@@ -17,6 +17,7 @@
             variant="flat" 
             class="shop-now-btn"
             size="large"
+            to="/products"
           >
             Shop Now
             <v-icon icon="mdi-arrow-right" class="ms-2" />

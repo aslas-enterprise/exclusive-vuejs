@@ -24,6 +24,11 @@ const goToProfile = () => {
   router.push('/profile');
 };
 
+const goToFavorites = () => {
+  router.push('/favorites');
+  isDropdownOpen.value = false;
+};
+
 const confirmLogout = async () => {
   showLogoutDialog.value = false;
   await handleLogout();
@@ -92,6 +97,13 @@ const confirmLogout = async () => {
               <v-icon icon="mdi-account" size="20" />
             </template>
             <v-list-item-title>Profile</v-list-item-title>
+          </v-list-item>
+
+          <v-list-item @click="goToFavorites" class="dropdown-item">
+            <template #prepend>
+              <v-icon icon="mdi-heart" size="20" />
+            </template>
+            <v-list-item-title>Favorites</v-list-item-title>
           </v-list-item>
 
           <v-list-item @click="() => { showLogoutDialog = true; isDropdownOpen = false; }" class="dropdown-item">

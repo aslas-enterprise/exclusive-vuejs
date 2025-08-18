@@ -31,6 +31,7 @@
             variant="flat" 
             size="large"
             class="buy-now-btn"
+            to="/products"
           >
             Buy Now
           </v-btn>

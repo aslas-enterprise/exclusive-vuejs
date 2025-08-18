@@ -59,7 +59,7 @@
           <ItemCard 
             v-for="item in flashSaleItems" 
             :key="item.id" 
-            :item="item"
+            :item="{item: item}"
             :show-sale-tag="true"
           />
         </div>
@@ -85,6 +85,7 @@
           variant="flat" 
           size="large"
           class="view-all-btn"
+          to="/products"
         >
           View All Products
         </v-btn>
@@ -94,13 +95,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, watch } from 'vue';
 import { useFlashSalesStore } from '../../../stores/modules/flash-sales/flash-sales.store';
 import { useFlashSaleTimerStore } from '../../../stores';
+import { useFavoritesStore } from '../../../stores/modules/favorites/favorites.store';
 import ItemCard from '../../../components/ItemCard.vue';
 
 const flashSalesStore = useFlashSalesStore();
 const flashSaleTimer = useFlashSaleTimerStore();
+const favoritesStore = useFavoritesStore();
 
 // Fetch flash sales on component mount
 onMounted(async () => {
@@ -120,6 +123,18 @@ const flashSaleItems = computed(() => flashSalesStore.flashSaleItems);
 // Loading and error states
 const loading = computed(() => flashSalesStore.loading);
 const error = computed(() => flashSalesStore.error);
+
+// Watch for flash sale items changes to check favorite status
+watch(flashSaleItems, async (newItems) => {
+  if (newItems && newItems.length > 0 && favoritesStore.isLoggedIn) {
+    // Extract item IDs from flash sale items
+    const itemIds = newItems.map(item => item.id).filter(Boolean);
+    if (itemIds.length > 0) {
+      // Check favorite status for all items
+      await favoritesStore.checkItemsFavoriteStatus(itemIds);
+    }
+  }
+}, { immediate: false });
 
 
 </script>
