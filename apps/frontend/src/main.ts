@@ -10,6 +10,8 @@ import '@mdi/font/css/materialdesignicons.css';
 import { createPinia } from 'pinia';
 import { useAuthStore } from './stores/index';
 import i18n from './i18n';
+import vSelect from 'vue-select';
+import 'vue-select/dist/vue-select.css';
 
 const vuetify = createVuetify({
   blueprint: md3,
@@ -40,6 +42,7 @@ app.use(createPinia());
 app.use(i18n);
 app.use(router);
 app.use(vuetify);
+app.component('VSelect', vSelect);
 
 // Initialize auth store after pinia is created
 const pinia = app._context.provides.pinia;

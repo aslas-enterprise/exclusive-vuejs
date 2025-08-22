@@ -25,7 +25,7 @@
     <!-- Action Buttons -->
     <div class="buttons-section">
       <v-btn 
-        color="primary" 
+        :color="isInCart ? 'success' : 'primary'" 
         variant="flat" 
         size="large"
         class="add-to-cart-btn"
@@ -33,8 +33,8 @@
         :loading="addToCartLoading"
         @click="handleAddToCart"
       >
-        <v-icon icon="mdi-cart-plus" class="me-2" />
-        Add to Cart
+        <v-icon :icon="isInCart ? 'mdi-check' : 'mdi-cart-plus'" class="me-2" />
+        {{ isInCart ? 'Update Cart' : 'Add to Cart' }}
       </v-btn>
 
       <v-btn 
@@ -46,6 +46,21 @@
         @click="handleFavoriteClick"
         :loading="favoriteLoading"
       />
+    </div>
+
+    <!-- Cart Status Info -->
+    <div v-if="isInCart" class="cart-status">
+      <v-alert
+        type="info"
+        variant="tonal"
+        density="compact"
+        class="cart-status-alert"
+      >
+        <template #prepend>
+          <v-icon icon="mdi-cart-check" size="16" />
+        </template>
+        This item is already in your cart ({{ cartItemQuantity }} {{ cartItemQuantity === 1 ? 'item' : 'items' }})
+      </v-alert>
     </div>
   </div>
 </template>
@@ -71,9 +86,19 @@ const emit = defineEmits<{
 
 // Computed properties
 const maxQuantity = computed(() => {
-  const stock = props.item.stock || props.item.item?.stock;
+  const stock = props.item.stock;
   const availableStock = stock ? stock.quantity : 0;
   return Math.min(availableStock, 10); // Max 10 items per order
+});
+
+const isInCart = computed(() => {
+  // This will be passed from parent component
+  return false; // Placeholder, will be overridden by parent
+});
+
+const cartItemQuantity = computed(() => {
+  // This will be passed from parent component
+  return 0; // Placeholder, will be overridden by parent
 });
 
 // Methods
@@ -121,6 +146,12 @@ const handleFavoriteClick = () => {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.quantity-controls button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px !important;
 }
 
 .quantity-display {

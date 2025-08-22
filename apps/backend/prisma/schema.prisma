@@ -28,6 +28,9 @@ model User {
   reviews          Review[]
   favorites        Favorite[]
   ratings          Rating[]
+  cart             Cart?
+  orders           Order[]
+  paymentHistory   PaymentHistory[]
 
   @@map("users")
 }
@@ -121,12 +124,102 @@ model Item {
   prices      Price[]
   stock       Stock?
   images      ItemImage[]
-                reviews     Review[]
-              ratings     Rating[]
-              favorites   Favorite[]
-              flashSaleItems FlashSaleItem[]
+  reviews     Review[]
+  ratings     Rating[]
+  favorites   Favorite[]
+  flashSaleItems FlashSaleItem[]
+  cartItems   CartItem[]
+  orders      OrderItem[]
 
   @@map("items")
+}
+
+model Cart {
+  id        String      @id @default(cuid())
+  userId    String?     @unique
+  items     CartItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      User?       @relation(fields: [userId], references: [id])
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  itemId    String
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("cart_items")
+}
+
+model Order {
+  id                    String        @id @default(cuid())
+  userId                String?
+  guestUserInfo         String?       // JSON string for guest user info
+  shippingAddress       String        // JSON string for shipping address
+  billingAddress        String        // JSON string for billing address
+  subtotal              Float
+  shippingCost          Float
+  tax                   Float
+  total                 Float
+  status                String        @default("pending") // pending, confirmed, processing, shipped, delivered, cancelled
+  paymentStatus         String        @default("pending") // pending, completed, failed, refunded
+  stripePaymentIntentId String?
+  notes                 String?
+  isGuestOrder          Boolean       @default(false)     // Whether this is a guest order
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  user                  User?         @relation(fields: [userId], references: [id])
+  items                 OrderItem[]
+  paymentHistory        PaymentHistory[]
+
+  @@map("orders")
+}
+
+model PaymentHistory {
+  id                    String   @id @default(cuid())
+  orderId               String
+  userId                String?  // User who made the payment (null for guest orders)
+  stripePaymentIntentId String
+  amount                Float
+  currency              String   @default("USD")
+  status                String   // succeeded, failed, pending, cancelled
+  paymentMethod         String?  // card, bank_transfer, etc.
+  last4                 String?  // Last 4 digits of card
+  brand                 String?  // Visa, Mastercard, etc.
+  receiptUrl            String?  // Stripe receipt URL
+  failureReason         String?  // Reason for failure if any
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  order                 Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user                  User?    @relation(fields: [userId], references: [id])
+
+  @@map("payment_history")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  itemId    String
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
 }
 
 model Price {

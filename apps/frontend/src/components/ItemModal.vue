@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { useFavoritesStore } from '../stores/modules/favorites/favorites.store';
+import { useFavoritesStore, useCartStore } from '../stores/index';
 import ItemModalImages from './ItemModalImages.vue';
 import ItemModalDetails from './ItemModalDetails.vue';
 import ItemModalActions from './ItemModalActions.vue';
@@ -59,6 +59,7 @@ const emit = defineEmits<{
 }>();
 
 const favoritesStore = useFavoritesStore();
+const cartStore = useCartStore();
 
 // Modal state
 const isOpen = computed({
@@ -74,12 +75,20 @@ const favoriteLoading = ref(false);
 
 // Computed properties
 const isInStock = computed(() => {
-  const stock = props.item.stock || props.item.item?.stock;
+  const stock = props.item.stock;
   return stock && stock.quantity > 0;
 });
 
 const isFavorited = computed(() => {
-  return favoritesStore.isItemFavorited(props.item.id || props.item.item?.id);
+  return favoritesStore.isItemFavorite(props.item.id);
+});
+
+const isInCart = computed(() => {
+  return cartStore.isItemInCart(props.item.id);
+});
+
+const cartItemQuantity = computed(() => {
+  return cartStore.getItemQuantity(props.item.id);
 });
 
 // Methods
@@ -101,6 +110,18 @@ const updateQuantity = (newQuantity: number) => {
 const handleAddToCart = async () => {
   try {
     addToCartLoading.value = true;
+    
+    if (isInCart.value) {
+      // Update existing cart item
+      const cartItem = cartStore.getCartItem(props.item.id);
+      if (cartItem) {
+        await cartStore.updateCartItemQuantity(cartItem.id, quantity.value);
+      }
+    } else {
+      // Add new item to cart
+      await cartStore.addToCart(props.item.id, quantity.value);
+    }
+    
     emit('add-to-cart', props.item, quantity.value);
     // Close modal after adding to cart
     closeModal();
@@ -114,8 +135,7 @@ const handleAddToCart = async () => {
 const handleFavoriteClick = async () => {
   try {
     favoriteLoading.value = true;
-    const itemId = props.item.id || props.item.item?.id;
-    await favoritesStore.toggleFavorite(itemId);
+    await favoritesStore.toggleFavorite(props.item.id);
   } catch (error) {
     console.error('Error toggling favorite:', error);
   } finally {
@@ -123,13 +143,16 @@ const handleFavoriteClick = async () => {
   }
 };
 
-
-
 // Watch for modal open to reset state
 watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     currentImageIndex.value = 0;
-    quantity.value = 1;
+    // Set quantity to current cart quantity if item is in cart
+    if (isInCart.value) {
+      quantity.value = cartItemQuantity.value;
+    } else {
+      quantity.value = 1;
+    }
   }
 });
 </script>

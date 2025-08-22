@@ -26,8 +26,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { useItemsStore } from '../../stores/modules/items';
-import { useCategoriesStore } from '../../stores/modules/categories';
+import { IItems, useItemsStore } from '../../stores/modules/items';
+import { ICategories, useCategoriesStore } from '../../stores/modules/categories';
 import { useFavoritesStore } from '../../stores/modules/favorites/favorites.store';
 import ProductsHeader from './components/ProductsHeader.vue';
 import ProductsFilters from './components/ProductsFilters.vue';
@@ -38,10 +38,6 @@ const itemsStore = useItemsStore();
 const categoriesStore = useCategoriesStore();
 const favoritesStore = useFavoritesStore();
 
-// Debug store state
-console.log('ItemsStore state:', itemsStore.$state);
-console.log('CategoriesStore state:', categoriesStore.$state);
-
 // Refs
 const filtersRef = ref();
 
@@ -51,16 +47,27 @@ const error = ref<string | null>(null);
 
 // Computed properties
 const products = computed(() => {
-  console.log('Products computed - itemsStore.items:', itemsStore.items);
-  return itemsStore.items;
+  return  itemsStore.items as unknown as IItems.Item[] || [];
 });
 const categories = computed(() => {
-  console.log('Categories computed - categoriesStore.categories:', categoriesStore.categories);
-  return categoriesStore.categories;
+  return categoriesStore.categories as unknown as ICategories.Category[] || [];
 });
 const pagination = computed(() => {
-  console.log('Pagination computed - itemsStore.pagination:', itemsStore.pagination);
-  return itemsStore.pagination;
+  const paginationData = itemsStore.pagination as unknown as IItems.ItemsResponse;
+  if (!paginationData) {
+    return {
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 0
+    };
+  }
+  return {
+    total: paginationData.total || 0,
+    page: paginationData.page || 1,
+    limit: paginationData.limit || 10,
+    totalPages: paginationData.totalPages || 0
+  };
 });
 
 // Methods
@@ -83,12 +90,12 @@ const fetchProducts = async (filters?: any) => {
       });
     }
     
-    console.log('Fetching products with params:', queryParams);
     const result = await itemsStore.fetchItems(queryParams);
-    console.log('Products fetch result:', result);
+    console.log('Products loaded:', result);
+    console.log('Store items after fetch:', itemsStore.items?.value);
   } catch (err) {
-    console.error('Error fetching products:', err);
     error.value = err instanceof Error ? err.message : 'Failed to fetch products';
+    console.error('Error fetching products:', err);
   } finally {
     loading.value = false;
   }
@@ -119,10 +126,12 @@ const handlePageChange = (page: number) => {
 watch(products, async (newProducts) => {
   if (newProducts && newProducts.length > 0 && favoritesStore.isLoggedIn) {
     // Extract item IDs from products
-    const itemIds = newProducts.map(product => product.id || product.item?.id).filter(Boolean);
+    const itemIds = newProducts.map(product => product.id).filter(Boolean);
     if (itemIds.length > 0) {
       // Check favorite status for all items
-      await favoritesStore.checkItemsFavoriteStatus(itemIds);
+      for (const itemId of itemIds) {
+        await favoritesStore.checkFavoriteStatus(itemId);
+      }
     }
   }
 }, { immediate: false });
@@ -130,24 +139,39 @@ watch(products, async (newProducts) => {
 // Lifecycle
 onMounted(async () => {
   try {
-    console.log('ProductsPage mounted, fetching data...');
     // Fetch categories for filter dropdown
     await categoriesStore.fetchCategories();
-    console.log('Categories fetched:', categories.value);
+    
     // Fetch initial products
     await fetchProducts();
-    console.log('Products fetched:', products.value);
+    
+    // Debug: Check what's in the store
+    console.log('Store state after fetch:');
+    console.log('Items:', itemsStore.items?.value);
+    console.log('Categories:', categoriesStore.categories?.value);
+    console.log('Products computed:', products.value);
+    
+    // If no products loaded, try to debug
+    if (!products.value || products.value.length === 0) {
+      console.log('No products loaded, checking store state:');
+      console.log('ItemsStore items:', itemsStore.items?.value);
+      console.log('ItemsStore loading:', itemsStore.loading?.value);
+      console.log('ItemsStore error:', itemsStore.error?.value);
+    }
     
     // Check favorite status for initial products if user is logged in
     if (products.value && products.value.length > 0 && favoritesStore.isLoggedIn) {
-      const itemIds = products.value.map(product => product.id || product.item?.id).filter(Boolean);
+      const itemIds = products.value.map(product => product.id).filter(Boolean);
+    
       if (itemIds.length > 0) {
-        await favoritesStore.checkItemsFavoriteStatus(itemIds);
+        for (const itemId of itemIds) {
+          await favoritesStore.checkFavoriteStatus(itemId);
+        }
       }
     }
   } catch (err) {
-    console.error('Error in ProductsPage onMounted:', err);
     error.value = 'Failed to initialize page';
+    console.error('Error in ProductsPage onMounted:', err);
   }
 });
 </script>

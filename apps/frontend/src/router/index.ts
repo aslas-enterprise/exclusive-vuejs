@@ -74,6 +74,16 @@ const router = createRouter({
       component: () => import('../views/FavoritesView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/checkout',
+      name: 'checkout',
+      component: () => import('../features/checkout/views/CheckoutView.vue'),
+    },
+    {
+      path: '/order-success/:orderId',
+      name: 'order-success',
+      component: () => import('../features/checkout/views/OrderSuccessView.vue'),
+    },
   ],
 });
 

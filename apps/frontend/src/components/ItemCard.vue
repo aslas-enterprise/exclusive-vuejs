@@ -5,7 +5,7 @@
       <div v-if="hasMultipleImages" class="image-slideshow">
         <img 
           :src="currentImage.url" 
-          :alt="currentImage.altText || item.name || item.item?.name" 
+          :alt="currentImage.altText || item.name" 
           class="slideshow-image"
         />
         
@@ -28,14 +28,14 @@
       <img 
         v-else
         :src="getPrimaryImage(item)" 
-        :alt="item.name || item.item?.name" 
+        :alt="item.name" 
         class="single-image"
       />
       
       <div v-if="showSaleTag && isOnSale" class="sale-badge">Sale</div>
     </div>
     <div class="item-info">
-      <h3 class="item-name">{{ item.name || item.item?.name }}</h3>
+      <h3 class="item-name">{{ item.name }}</h3>
       <div class="item-rating">
         <div class="stars">
           <v-icon 
@@ -43,16 +43,16 @@
             :key="star" 
             icon="mdi-star" 
             size="16" 
-            :color="star <= getAverageRating(item.item) ? '#FFD700' : '#E0E0E0'"
+            :color="star <= getAverageRating(item) ? '#FFD700' : '#E0E0E0'"
           />
         </div>
-        <span class="rating-count">({{ getReviewCount(item.item) }} reviews)</span>
+        <span class="rating-count">({{ getReviewCount(item) }} reviews)</span>
       </div>
  
       <div class="item-price">
-        <span v-if="isOnSale" class="current-price">${{ item.item.salePrice || getCurrentPrice(item) }}</span>
-        <span v-else class="current-price">${{ item.item.currentPrice || getCurrentPrice(item) }}</span>
-        <span v-if="isOnSale" class="original-price">${{ item.item.currentPrice || getOriginalPrice(item) }}</span>
+        <span v-if="isOnSale" class="current-price">${{ getSalePrice(item) }}</span>
+        <span v-else class="current-price">${{ getOriginalPrice(item) }}</span>
+        <span v-if="isOnSale" class="original-price">${{ getOriginalPrice(item) }}</span>
       </div>
       <div class="item-actions">
         <v-btn 
@@ -71,14 +71,45 @@
           class="action-btn"
           @click="openItemModal"
         />
+        
+        <!-- Add to Cart Button (when not in cart) -->
         <v-btn 
+          v-if="!isInCart"
           color="primary" 
           variant="flat" 
           size="small"
           class="add-to-cart-btn"
+          :loading="cartLoading"
+          @click="handleAddToCart"
         >
+          <v-icon icon="mdi-cart-plus" size="16" class="me-1" />
           Add To Cart
         </v-btn>
+        
+        <!-- Cart Actions (when in cart) -->
+        <div v-else class="cart-actions">
+          <v-btn 
+            color="success" 
+            variant="flat" 
+            size="small"
+            class="in-cart-btn"
+            disabled
+          >
+            <v-icon icon="mdi-check" size="16" class="me-1" />
+            In Cart
+          </v-btn>
+          <v-btn 
+            color="error" 
+            variant="outlined" 
+            size="small"
+            class="remove-from-cart-btn"
+            :loading="cartLoading"
+            @click="handleRemoveFromCart"
+          >
+            <v-icon icon="mdi-cart-minus" size="16" class="me-1" />
+            Remove
+          </v-btn>
+        </div>
       </div>
     </div>
   </div>
@@ -94,7 +125,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useFavoritesStore } from '../stores/modules/favorites/favorites.store';
+import { useI18n } from 'vue-i18n';
+import { useFavoritesStore, useNotificationsStore, useCartStore, useAuthStore } from '../stores/index';
 import ItemModal from './ItemModal.vue';
 
 interface ItemCardProps {
@@ -107,11 +139,16 @@ const props = withDefaults(defineProps<ItemCardProps>(), {
 });
 
 const router = useRouter();
+const { t } = useI18n();
 const favoritesStore = useFavoritesStore();
+const authStore = useAuthStore();
+const notificationsStore = useNotificationsStore();
+const cartStore = useCartStore();
 
 // Slideshow state
 const currentImageIndex = ref(0);
 const favoriteLoading = ref(false);
+const cartLoading = ref(false);
 const localFavoriteStatus = ref(false);
 const showItemModal = ref(false);
 let autoSlideInterval: ReturnType<typeof setInterval> | null = null;
@@ -123,13 +160,13 @@ const isOnSale = computed(() => {
     return props.item.isOnSale;
   }
   // Fallback to price comparison
-  const currentPrice = getCurrentPrice(props.item);
+  const salePrice = getSalePrice(props.item);
   const originalPrice = getOriginalPrice(props.item);
-  return currentPrice < originalPrice && currentPrice > 0;
+  return salePrice < originalPrice && salePrice > 0;
 });
 
 const itemImages = computed(() => {
-  return props.item.images || props.item.item?.images || [];
+  return props.item.images || [];
 });
 
 const hasMultipleImages = computed(() => {
@@ -140,26 +177,33 @@ const currentImage = computed(() => {
   if (itemImages.value.length > 0) {
     return itemImages.value[currentImageIndex.value];
   }
-  return { url: 'https://picsum.photos/400/300?random=16', altText: props.item.name || props.item.item?.name };
+  return { url: 'https://picsum.photos/400/300?random=16', altText: props.item.name };
 });
 
 // Favorite functionality
 const isFavorited = computed(() => {
   // First check local state, then fallback to store
-  return localFavoriteStatus.value || favoritesStore.isItemFavorited(props.item.id || props.item.item?.id);
+  return localFavoriteStatus.value || favoritesStore.isItemFavorite(props.item.id);
+});
+
+// Cart functionality
+const isInCart = computed(() => {
+  return cartStore.isItemInCart(props.item.id);
 });
 
 // Check favorite status for this item
 const checkFavoriteStatus = async () => {
-  if (!favoritesStore.isLoggedIn) {
+  if (!authStore.isAuthenticated) {
     localFavoriteStatus.value = false;
     return;
   }
 
   try {
-    const itemId = props.item.id || props.item.item?.id;
-    const status = await favoritesStore.checkFavoriteStatus(itemId);
-    localFavoriteStatus.value = status;
+    const status = await favoritesStore.checkFavoriteStatus(props.item.id);
+  
+      localFavoriteStatus.value = status;
+    
+     
   } catch (error) {
     console.error('Error checking favorite status:', error);
     localFavoriteStatus.value = false;
@@ -176,25 +220,55 @@ const handleFavoriteClick = async () => {
 
   try {
     favoriteLoading.value = true;
-    const itemId = props.item.id || props.item.item?.id;
-    await favoritesStore.toggleFavorite(itemId);
+  
+    await favoritesStore.toggleFavorite(props.item.id);
     // Update local state after toggle
     localFavoriteStatus.value = !localFavoriteStatus.value;
+    
+    // Show notification
+    if (localFavoriteStatus.value) {
+      notificationsStore.showSuccess(`${props.item.name} ${t('notifications.favorites.added')}`);
+    } else {
+      notificationsStore.showInfo(`${props.item.name} ${t('notifications.favorites.removed')}`);
+    }
   } catch (error) {
     console.error('Error toggling favorite:', error);
+    notificationsStore.showError(t('notifications.favorites.error'));
   } finally {
     favoriteLoading.value = false;
   }
 };
 
-const openItemModal = () => {
-  showItemModal.value = true;
+// Add to cart handler
+const handleAddToCart = async () => {
+  try {
+    cartLoading.value = true;
+    await cartStore.addToCart(props.item.id, 1);
+    showItemModal.value = false;
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+  } finally {
+    cartLoading.value = false;
+  }
 };
 
-const handleAddToCart = (item: any, quantity: number) => {
-  // TODO: Implement add to cart functionality
-  console.log('Adding to cart:', item, quantity);
-  showItemModal.value = false;
+// Remove from cart handler
+const handleRemoveFromCart = async () => {
+  try {
+    cartLoading.value = true;
+    const cartItem = cartStore.getCartItem(props.item.id);
+    if (cartItem) {
+      await cartStore.removeFromCart(cartItem.id);
+    }
+  } catch (error) {
+    // Handle error silently
+  } finally {
+    cartLoading.value = false;
+  }
+};
+
+const openItemModal = () => {
+  showItemModal.value = true;
 };
 
 // Slideshow functions
@@ -252,11 +326,6 @@ const getPrimaryImage = (item: any) => {
     const primaryImage = item.images.find((img: any) => img.isPrimary);
     return primaryImage ? primaryImage.url : item.images[0].url;
   }
-  // Fallback to nested structure
-  if (item.item?.images && item.item.images.length > 0) {
-    const primaryImage = item.item.images.find((img: any) => img.isPrimary);
-    return primaryImage ? primaryImage.url : item.item.images[0].url;
-  }
   return 'https://picsum.photos/400/300?random=16';
 };
 
@@ -271,11 +340,6 @@ const getAverageRating = (item: any) => {
     const totalRating = item.reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
     return Math.round(totalRating / item.reviews.length);
   }
-  // Fallback to nested structure
-  if (item.item?.reviews && item.item.reviews.length > 0) {
-    const totalRating = item.item.reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
-    return Math.round(totalRating / item.item.reviews.length);
-  }
   return 0;
 };
 
@@ -289,12 +353,11 @@ const getReviewCount = (item: any) => {
   if (item.reviews) {
     return item.reviews.length;
   }
-  // Fallback to nested structure
-  return item.item?.reviews?.length || 0;
+  return 0;
 };
 
-// Helper function to get current price
-const getCurrentPrice = (item: any) => {
+// Helper function to get original price (regular price)
+const getOriginalPrice = (item: any) => {
   // Check if the API provides computed currentPrice
   if (item.currentPrice) {
     return item.currentPrice;
@@ -307,8 +370,8 @@ const getCurrentPrice = (item: any) => {
   return 0;
 };
 
-// Helper function to get original price
-const getOriginalPrice = (item: any) => {
+// Helper function to get sale price
+const getSalePrice = (item: any) => {
   // Check if the API provides computed salePrice
   if (item.salePrice) {
     return item.salePrice;
@@ -316,9 +379,10 @@ const getOriginalPrice = (item: any) => {
   // Fallback to prices array
   if (item.prices && item.prices.length > 0) {
     const activePrice = item.prices.find((price: any) => price.isActive);
-    return activePrice ? activePrice.price : item.prices[0].price;
+    return activePrice ? activePrice.salePrice : item.prices[0].salePrice;
   }
-  return 0;
+  // If no sale price, return original price
+  return getOriginalPrice(item);
 };
 </script>
 
@@ -330,6 +394,8 @@ const getOriginalPrice = (item: any) => {
   overflow: hidden;
   transition: all 0.3s ease;
   cursor: pointer;
+  width: 100%;
+  max-width: 350px;
 }
 
 .item-card:hover {
@@ -502,6 +568,38 @@ const getOriginalPrice = (item: any) => {
   height: 32px;
   text-transform: none;
   border-radius: 6px !important;
+}
+
+.cart-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.in-cart-btn {
+  font-size: 12px;
+  padding: 8px 16px;
+  height: 32px;
+  text-transform: none;
+  border-radius: 6px !important;
+  background-color: #4CAF50 !important;
+  color: white !important;
+  cursor: default;
+}
+
+.remove-from-cart-btn {
+  font-size: 12px;
+  padding: 8px 16px;
+  height: 32px;
+  text-transform: none;
+  border-radius: 6px !important;
+  border-color: #DB4444 !important;
+  color: #DB4444 !important;
+}
+
+.remove-from-cart-btn:hover {
+  background-color: #DB4444 !important;
+  color: white !important;
 }
 
 /* Responsive Design */

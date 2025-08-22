@@ -11,7 +11,7 @@
     "rememberMe": "Remember me",
     "forgotPassword": "Forgot Password?",
     "loginCta": "Log In",
-    "noAccount": "Don’t have an account?",
+    "noAccount": "Don't have an account?",
     "signUp": "Sign up"
   },
   "nav": {
@@ -40,6 +40,35 @@
     "faq": "FAQ",
     "contact": "Contact",
     "copyright": "© Copyright Rimel 2022. All right reserved"
+  },
+  "notifications": {
+    "favorites": {
+      "added": "added to your favorites!",
+      "removed": "removed from your favorites",
+      "error": "Failed to update favorites. Please try again."
+    },
+    "cart": {
+      "added": "added to cart!",
+      "updated": "Cart updated successfully",
+      "removed": "Item removed from cart",
+      "cleared": "Cart cleared successfully",
+      "error": "Failed to update cart. Please try again."
+    }
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "startShopping": "Start Shopping",
+    "total": "Total:",
+    "items": "items",
+    "clearCart": "Clear Cart",
+    "checkout": "Checkout",
+    "inCart": "In Cart",
+    "addToCart": "Add To Cart",
+    "updateCart": "Update Cart",
+    "alreadyInCart": "This item is already in your cart",
+    "item": "item",
+    "items": "items"
   }
 }
 

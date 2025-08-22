@@ -1,0 +1,9 @@
+export { BaseUrls } from './base';
+export { AuthUrls } from './auth';
+export { CartUrls } from './cart';
+export { CategoriesUrls } from './categories';
+export { FavoritesUrls } from './favorites';
+export { FlashSalesUrls } from './flash-sales';
+export { ItemsUrls } from './items';
+export { OrdersUrls } from './orders';
+export { UserUrls } from './user';

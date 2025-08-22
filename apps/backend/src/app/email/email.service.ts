@@ -26,6 +26,20 @@ export interface PasswordResetEmailData {
   resetLink: string;
 }
 
+export interface OrderConfirmationEmailData {
+  name: string;
+  email: string;
+  orderId: string;
+  orderDate: string;
+  total: number;
+  items: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  shippingAddress: string;
+}
+
 @Injectable()
 export class EmailService {
   private transporter!: nodemailer.Transporter;
@@ -195,6 +209,18 @@ console.log({mailOptions});
       subject: 'Reset Your Password 🔒',
       html: resetHtml,
       text: resetText,
+    });
+  }
+
+  async sendOrderConfirmationEmail(orderData: OrderConfirmationEmailData): Promise<boolean> {
+    const orderHtml = this.generateOrderConfirmationEmailTemplate(orderData);
+    const orderText = this.generateOrderConfirmationEmailText(orderData);
+
+    return this.sendEmail({
+      to: orderData.email,
+      subject: `Order Confirmation #${orderData.orderId} 🛍️`,
+      html: orderHtml,
+      text: orderText,
     });
   }
 
@@ -402,6 +428,90 @@ Best regards,
 The Exclusive Team
 
 This email was sent to ${userData.email}
+© ${new Date().getFullYear()} Exclusive. All rights reserved.
+    `;
+  }
+
+  private generateOrderConfirmationEmailTemplate(orderData: OrderConfirmationEmailData): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Order Confirmation</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .order-details { background: #fff; padding: 20px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 20px; }
+          .order-id { font-size: 24px; font-weight: bold; color: #007bff; }
+          .order-date { font-size: 18px; color: #555; margin-top: 5px; }
+          .total { font-size: 24px; font-weight: bold; color: #28a745; margin-top: 10px; }
+          .items-list { list-style: none; padding: 0; margin-top: 20px; }
+          .items-list li { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #eee; }
+          .items-list li:last-child { border-bottom: none; }
+          .item-name { font-weight: bold; }
+          .item-quantity { color: #6c757d; font-size: 14px; }
+          .item-price { font-weight: bold; color: #dc3545; font-size: 16px; }
+          .shipping-address { background: #e9ecef; padding: 15px; border-radius: 8px; margin-top: 20px; }
+          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Order Confirmation</h1>
+          <p>Your order has been successfully processed.</p>
+        </div>
+        <div class="content">
+          <div class="order-details">
+            <p class="order-id">Order ID: ${orderData.orderId}</p>
+            <p class="order-date">Order Date: ${orderData.orderDate}</p>
+            <p class="total">Total: $${orderData.total.toFixed(2)}</p>
+          </div>
+          <h3>Order Items:</h3>
+          <ul class="items-list">
+            ${orderData.items.map(item => `
+              <li>
+                <span class="item-name">${item.name}</span>
+                <span class="item-quantity">x${item.quantity}</span>
+                <span class="item-price">$${item.price.toFixed(2)}</span>
+              </li>
+            `).join('')}
+          </ul>
+          <div class="shipping-address">
+            <h3>Shipping Address:</h3>
+            <p>${orderData.shippingAddress}</p>
+          </div>
+        </div>
+        <div class="footer">
+          <p>This email was sent to ${orderData.email}</p>
+          <p>© ${new Date().getFullYear()} Exclusive. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private generateOrderConfirmationEmailText(orderData: OrderConfirmationEmailData): string {
+    return `
+Order Confirmation
+
+Hello ${orderData.name}!
+
+Your order has been successfully processed.
+
+Order ID: ${orderData.orderId}
+Order Date: ${orderData.orderDate}
+Total: $${orderData.total.toFixed(2)}
+
+Order Items:
+${orderData.items.map(item => `- ${item.name} (x${item.quantity}) - $${item.price.toFixed(2)}`).join('\n')}
+
+Shipping Address:
+${orderData.shippingAddress}
+
+This email was sent to ${orderData.email}
 © ${new Date().getFullYear()} Exclusive. All rights reserved.
     `;
   }

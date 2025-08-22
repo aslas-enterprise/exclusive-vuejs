@@ -23,7 +23,7 @@
           <ItemCard 
             v-for="product in exploreItems" 
             :key="product.id" 
-            :item="{item: product}"
+            :item="product"
             :show-sale-tag="true"
           />
         </div>
@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
-import { useItemsStore } from '../../../stores/modules/items';
+import { IItems, useItemsStore } from '../../../stores/modules/items';
 import ItemCard from '../../../components/ItemCard.vue';
 
 const itemsStore = useItemsStore();
@@ -69,14 +69,10 @@ onMounted(async () => {
 });
 
 // Get featured items from store
-const exploreItems = computed(() => itemsStore.featuredItems);
+const exploreItems = computed(() => itemsStore.featuredItems as unknown as IItems.Item[]);
 
 
-// Loading state
-const loading = computed(() => itemsStore.loading);
 
-// Error state
-const error = computed(() => itemsStore.error);
 </script>
 
 <style scoped>

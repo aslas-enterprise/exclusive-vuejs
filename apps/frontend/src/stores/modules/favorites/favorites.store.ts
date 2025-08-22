@@ -1,164 +1,111 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { favoritesApi, FavoriteItem, FavoriteStatus } from '../../apis/favorites.api';
-import { useAuthStore } from '../auth/auth.store';
+import { IFavorites, FavoritesActions } from '.';
+import { useAuthStore } from '../auth';
 
 export const useFavoritesStore = defineStore('favorites', () => {
-  const favorites = ref<FavoriteItem[]>([]);
-  const loading = ref(false);
+  // ****** State ******
+  const favorites = ref<IFavorites.FavoriteItem[]>([]);
+  const loading = ref<boolean>(false);
   const error = ref<string | null>(null);
 
   const authStore = useAuthStore();
 
-  // Computed properties
+  // ****** Getters ******
   const favoritesCount = computed(() => favorites.value.length);
-  const isLoggedIn = computed(() => authStore.isAuthenticated);
+  const isEmpty = computed(() => favorites.value.length === 0);
+  const isLoggedIn = computed(() => {
+    return authStore.isAuthenticated;
+  });
 
-  // Actions
-  const fetchFavorites = async () => {
-    if (!authStore.isAuthenticated) {
-      favorites.value = [];
-      return;
-    }
-
+  // ****** Actions ******
+  const fetchFavorites = async (): Promise<void> => {
     try {
       loading.value = true;
       error.value = null;
-      const data = await favoritesApi.getUserFavorites();
-      favorites.value = data;
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to fetch favorites';
+      favorites.value = await FavoritesActions.getUserFavorites();
+    } catch (err) {
+      error.value = 'Failed to fetch favorites';
       console.error('Error fetching favorites:', err);
     } finally {
       loading.value = false;
     }
   };
 
-  const addToFavorites = async (itemId: string) => {
-    if (!authStore.isAuthenticated) {
-      throw new Error('User not authenticated');
-    }
-
+  const addToFavorites = async (itemId: string): Promise<void> => {
     try {
       loading.value = true;
       error.value = null;
-      const newFavorite = await favoritesApi.addToFavorites(itemId);
-      favorites.value.unshift(newFavorite);
-      return newFavorite;
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to add to favorites';
-      throw err;
+      const newFavorite = await FavoritesActions.addToFavorites(itemId);
+      favorites.value.push(newFavorite);
+    } catch (err) {
+      error.value = 'Failed to add to favorites';
+      console.error('Error adding to favorites:', err);
     } finally {
       loading.value = false;
     }
   };
 
-  const removeFromFavorites = async (itemId: string) => {
-    if (!authStore.isAuthenticated) {
-      throw new Error('User not authenticated');
-    }
-
+  const removeFromFavorites = async (itemId: string): Promise<void> => {
     try {
       loading.value = true;
       error.value = null;
-      await favoritesApi.removeFromFavorites(itemId);
-      favorites.value = favorites.value.filter(fav => fav.item.id !== itemId);
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to remove from favorites';
-      throw err;
+      await FavoritesActions.removeFromFavorites(itemId);
+      favorites.value = favorites.value.filter(fav => fav.itemId !== itemId);
+    } catch (err) {
+      error.value = 'Failed to remove from favorites';
+      console.error('Error removing from favorites:', err);
     } finally {
       loading.value = false;
     }
   };
-
-  const toggleFavorite = async (itemId: string) => {
-    const isFavorited = favorites.value.some(fav => fav.item.id === itemId);
+  const checkFavoriteStatus = async (itemId: string): Promise<boolean> => {
+    return await FavoritesActions.checkIfFavorite(itemId);
+  };
+  const toggleFavorite = async (itemId: string): Promise<void> => {
+    const isFavorite = favorites.value.some(fav => fav.itemId === itemId);
     
-    if (isFavorited) {
+    if (isFavorite) {
       await removeFromFavorites(itemId);
     } else {
       await addToFavorites(itemId);
     }
   };
 
-  const checkFavoriteStatus = async (itemId: string): Promise<boolean> => {
-    if (!authStore.isAuthenticated) {
-      return false;
-    }
-
-    try {
-      const status = await favoritesApi.checkFavoriteStatus(itemId);
-      return status.isFavorited;
-    } catch (err) {
-      console.error('Error checking favorite status:', err);
-      return false;
-    }
+  const isItemFavorite = (itemId: string): boolean => {
+    return favorites.value.some(fav => fav.itemId === itemId);
   };
 
-  const isItemFavorited = (itemId: string): boolean => {
-    return favorites.value.some(fav => fav.item.id === itemId);
-  };
-
-  // Check favorite status for multiple items and update local state
-  const checkItemsFavoriteStatus = async (itemIds: string[]) => {
-    if (!authStore.isAuthenticated || itemIds.length === 0) {
-      return;
-    }
-
-    try {
-      // Check status for each item
-      const statusPromises = itemIds.map(async (itemId) => {
-        try {
-          const status = await favoritesApi.checkFavoriteStatus(itemId);
-          return { itemId, isFavorited: status.isFavorited };
-        } catch (err) {
-          console.error(`Error checking favorite status for item ${itemId}:`, err);
-          return { itemId, isFavorited: false };
-        }
-      });
-
-      const results = await Promise.all(statusPromises);
-      
-      // Update local favorites state based on results
-      results.forEach(({ itemId, isFavorited }) => {
-        if (isFavorited) {
-          // If item is favorited but not in local state, add it
-          const existingItem = favorites.value.find(fav => fav.item.id === itemId);
-          if (!existingItem) {
-            // We need to fetch the item details to add it to favorites
-            // For now, we'll just mark it as favorited in a separate state
-            // This will be handled by the individual ItemCard components
-          }
-        }
-      });
-    } catch (err) {
-      console.error('Error checking items favorite status:', err);
-    }
-  };
-
-  const clearFavorites = () => {
-    favorites.value = [];
+  const clearError = (): void => {
     error.value = null;
   };
 
+  const reset = (): void => {
+    favorites.value = [];
+    loading.value = false;
+    error.value = null;
+  };
+
+
   return {
-    // State
+    // ****** State ******
     favorites,
     loading,
     error,
-    
-    // Computed
+
+    // ****** Getters ******
     favoritesCount,
+    isEmpty,
     isLoggedIn,
-    
-    // Actions
+
+    // ****** Actions ******
     fetchFavorites,
     addToFavorites,
     removeFromFavorites,
-    toggleFavorite,
     checkFavoriteStatus,
-    checkItemsFavoriteStatus,
-    isItemFavorited,
-    clearFavorites,
+    toggleFavorite,
+    isItemFavorite,
+    clearError,
+    reset,
   };
 });

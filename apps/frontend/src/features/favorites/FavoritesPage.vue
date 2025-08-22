@@ -38,7 +38,7 @@
       <ItemCard
         v-for="favorite in favorites"
         :key="favorite.id"
-        :item="{item: favorite.item}"
+        :item="favorite"
         :show-sale-tag="true"
       />
     </div>

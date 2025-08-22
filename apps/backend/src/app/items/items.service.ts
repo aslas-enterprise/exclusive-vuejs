@@ -886,8 +886,8 @@ export class ItemsService {
   // ===== HELPER METHODS =====
 
   private mapToItemResponse(item: any): ItemResponseDto {
-    const currentPrice = item.prices?.find((p: any) => p.isActive)?.price || 0;
-    const salePrice = item.prices?.find((p: any) => p.isActive)?.salePrice;
+    const currentPrice = Number(item.prices?.find((p: any) => p.isActive)?.price) || 0;
+    const salePrice = Number(item.prices?.find((p: any) => p.isActive)?.salePrice) || 0;
     const averageRating = item.ratings?.length > 0 
       ? item.ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / item.ratings.length 
       : 0;
@@ -919,7 +919,7 @@ export class ItemsService {
       isFavorite,
       currentPrice,
       salePrice,
-      isOnSale: salePrice && salePrice < currentPrice,
+      isOnSale: Boolean(salePrice) && Number(salePrice) < Number(currentPrice) && Number(salePrice) > 0,
     };
   }
 

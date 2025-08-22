@@ -30,7 +30,7 @@
         <ItemCard
           v-for="product in products"
           :key="product.id"
-          :item="{item: product}"
+          :item="product"
           :show-sale-tag="true"
         />
       </div>
@@ -90,7 +90,7 @@ const emit = defineEmits<{
 }>();
 
 // Local state
-const currentPage = ref(props.pagination.page);
+const currentPage = ref(props.pagination?.page || 1);
 
 // Computed properties
 const paginationInfo = computed(() => {
@@ -113,7 +113,7 @@ const handlePageChange = (page: number) => {
 };
 
 // Watch for pagination changes from parent
-watch(() => props.pagination.page, (newPage) => {
+watch(() => props.pagination?.page, (newPage) => {
   currentPage.value = newPage;
 });
 

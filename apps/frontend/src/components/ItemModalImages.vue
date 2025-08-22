@@ -4,7 +4,7 @@
     <div class="main-image-container">
       <img 
         :src="currentImage.url" 
-        :alt="currentImage.altText || item.name || item.item?.name"
+        :alt="currentImage.altText || item.name"
         class="main-image"
       />
       
@@ -61,7 +61,7 @@ const emit = defineEmits<{
 
 // Computed properties
 const itemImages = computed(() => {
-  return props.item.images || props.item.item?.images || [];
+  return props.item.images || [];
 });
 
 const hasMultipleImages = computed(() => {
@@ -74,7 +74,7 @@ const currentImage = computed(() => {
   }
   return { 
     url: 'https://picsum.photos/400/300?random=16', 
-    altText: props.item.name || props.item.item?.name 
+    altText: props.item.name 
   };
 });
 

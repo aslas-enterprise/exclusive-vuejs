@@ -37,7 +37,7 @@
           <ItemCard 
             v-for="product in bestSellingProducts" 
             :key="product.id" 
-            :item="{item: product}"
+            :item="product"
             :show-sale-tag="true"
           />
         </div>

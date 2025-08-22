@@ -20,6 +20,8 @@ import {
   FlashSaleItemResponseDto,
 } from './dto/flash-sale.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { FlashSaleItemDto } from './dto/flash-sale.dto';
 
 @Controller('flash-sales')
 export class FlashSalesController {
@@ -35,6 +37,15 @@ export class FlashSalesController {
   @Get(':id')
   async getFlashSaleById(@Param('id') id: string): Promise<FlashSaleResponseDto> {
     return this.flashSalesService.getFlashSaleById(id);
+  }
+
+  @Get(':id/items')
+  @ApiOperation({ summary: 'Get flash sale items in items API format' })
+  @ApiParam({ name: 'id', description: 'Flash sale ID' })
+  @ApiResponse({ status: 200, description: 'Flash sale items retrieved successfully', type: [FlashSaleItemDto] })
+  @ApiResponse({ status: 404, description: 'Flash sale not found' })
+  async getFlashSaleItems(@Param('id') id: string): Promise<FlashSaleItemDto[]> {
+    return this.flashSalesService.getFlashSaleItems(id);
   }
 
   // ===== ADMIN ENDPOINTS =====

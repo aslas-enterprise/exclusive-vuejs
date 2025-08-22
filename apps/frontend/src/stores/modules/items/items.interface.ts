@@ -117,6 +117,14 @@ export interface Item {
   isOnSale?: boolean;
 }
 
+export interface ItemsResponse {
+  items: Item[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface ItemsState {
   items: Item[];
   featuredItems: Item[];

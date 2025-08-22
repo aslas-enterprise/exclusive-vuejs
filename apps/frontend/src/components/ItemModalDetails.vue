@@ -2,7 +2,7 @@
   <div class="details-section">
     <!-- Basic Info -->
     <div class="basic-info">
-      <h1 class="item-name">{{ item.name || item.item?.name }}</h1>
+      <h1 class="item-name">{{ item.name }}</h1>
       
       <!-- Rating -->
       <div class="rating-section">
@@ -12,25 +12,26 @@
             :key="star" 
             icon="mdi-star" 
             size="20" 
-            :color="star <= getAverageRating(item.item) ? '#FFD700' : '#E0E0E0'"
+            :color="star <= getAverageRating(item) ? '#FFD700' : '#E0E0E0'"
           />
         </div>
         <span class="rating-text">
-          {{ getAverageRating(item.item) }}/5 ({{ getReviewCount(item.item) }} reviews)
+          {{ getAverageRating(item) }}/5 ({{ getReviewCount(item) }} reviews)
         </span>
       </div>
 
       <!-- Price -->
       <div class="price-section">
         <div v-if="isOnSale" class="price-row">
-          <span class="current-price">${{ getCurrentPrice(item) }}</span>
+          <span class="current-price">${{ getSalePrice(item) }}</span>
           <span class="original-price">${{ getOriginalPrice(item) }}</span>
           <span class="discount-badge">
-            -{{ Math.round(((getOriginalPrice(item) - getCurrentPrice(item)) / getOriginalPrice(item)) * 100) }}%
+            - {{ Math.round(((getOriginalPrice(item) - getSalePrice(item)) / getOriginalPrice(item)) * 100) }}%
           </span>
         </div>
+    
         <div v-else class="price-row">
-          <span class="current-price">${{ getCurrentPrice(item) }}</span>
+          <span class="current-price">${{ getOriginalPrice(item) }}</span>
         </div>
       </div>
     </div>
@@ -39,7 +40,7 @@
     <div class="description-section">
       <h3>Description</h3>
       <p class="description-text">
-        {{ item.description || item.item?.description || 'No description available.' }}
+        {{ item.description || 'No description available.' }}
       </p>
     </div>
 
@@ -47,14 +48,14 @@
     <div class="category-section">
       <div class="category-item">
         <span class="label">Category:</span>
-        <span class="value">{{ item.category?.name || item.item?.category?.name || 'N/A' }}</span>
+        <span class="value">{{ item.category?.name || 'N/A' }}</span>
       </div>
-      <div v-if="item.subcategory?.name || item.item?.subcategory?.name" class="category-item">
+      <div v-if="item.subcategory?.name" class="category-item">
         <span class="label">Subcategory:</span>
-        <span class="value">{{ item.subcategory?.name || item.item?.subcategory?.name }}</span>
+        <span class="value">{{ item.subcategory.name }}</span>
       </div>
     </div>
-
+{{ console.log(item) }}
     <!-- Stock Info -->
     <div class="stock-section">
       <div class="stock-item">
@@ -85,23 +86,23 @@ const isOnSale = computed(() => {
   if (props.item.isOnSale !== undefined) {
     return props.item.isOnSale;
   }
-  const currentPrice = getCurrentPrice(props.item);
+  const salePrice = getSalePrice(props.item);
   const originalPrice = getOriginalPrice(props.item);
-  return currentPrice < originalPrice && currentPrice > 0;
+  return salePrice < originalPrice && salePrice > 0;
 });
 
 const isInStock = computed(() => {
-  const stock = props.item.stock || props.item.item?.stock;
+  const stock = props.item.stock;
   return stock && stock.quantity > 0;
 });
 
 const availableStock = computed(() => {
-  const stock = props.item.stock || props.item.item?.stock;
+  const stock = props.item.stock;
   return stock ? stock.quantity : 0;
 });
 
-// Helper functions
-const getCurrentPrice = (item: any) => {
+// Helper function to get original price (regular price)
+const getOriginalPrice = (item: any) => {
   if (item.currentPrice) {
     return item.currentPrice;
   }
@@ -112,15 +113,16 @@ const getCurrentPrice = (item: any) => {
   return 0;
 };
 
-const getOriginalPrice = (item: any) => {
+const getSalePrice = (item: any) => {
   if (item.salePrice) {
     return item.salePrice;
   }
   if (item.prices && item.prices.length > 0) {
     const activePrice = item.prices.find((price: any) => price.isActive);
-    return activePrice ? activePrice.price : item.prices[0].price;
+    return activePrice ? activePrice.salePrice : item.prices[0].salePrice;
   }
-  return 0;
+  // If no sale price, return original price
+  return getOriginalPrice(item);
 };
 
 const getAverageRating = (item: any) => {

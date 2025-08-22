@@ -3,6 +3,7 @@ import { RouterLink, RouterView } from 'vue-router';
 import TopPromoBar from '@components/layout/TopPromoBar.vue';
 import SiteHeader from '@components/layout/SiteHeader.vue';
 import SiteFooter from '@components/layout/SiteFooter.vue';
+import NotificationToast from '@components/NotificationToast.vue';
 </script>
 
 <template>
@@ -13,6 +14,7 @@ import SiteFooter from '@components/layout/SiteFooter.vue';
       <RouterView />
     </v-main>
     <SiteFooter />
+    <NotificationToast />
   </v-app>
   
 </template>

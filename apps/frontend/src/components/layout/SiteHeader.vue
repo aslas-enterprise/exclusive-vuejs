@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import BrandLogo from '@components/BrandLogo.vue';
+import CartBasket from './CartBasket.vue';
 import { useAuthStore } from '../../stores/index';
 import UserDropdown from './UserDropdown.vue';
 
@@ -35,6 +36,11 @@ const isAuthenticated = computed(() => authStore.isAuthenticated);
           </template>
         </v-text-field>
 
+        <!-- Cart Basket -->
+        <div class="me-4">
+          <CartBasket />
+        </div>
+
         <!-- User Authentication Section -->
         <div v-if="!isAuthenticated" class="d-flex align-center">
           <v-btn to="/login" variant="text" class="nav-link me-2">Login</v-btn>
@@ -42,7 +48,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated);
         </div>
 
         <!-- User Profile Section -->
-                <UserDropdown v-else />
+        <UserDropdown v-else />
       </div>
     </v-container>
   </header>
